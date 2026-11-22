@@ -1,0 +1,287 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>Spellbound Express</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --ink: #22285a; --ink-soft: #5a6290; --gold: #ffcf3f; --gold-deep: #f0a81c; --pink: #ff6fb5; --violet: #7b5cff;
+    --mint: #3fd69a; --card: rgba(255, 255, 255, 0.86); --line: rgba(34, 40, 90, 0.12);
+  }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body { margin: 0; height: 100%; overflow: hidden; background: #8ec7ff; font-family: "Fredoka", "Trebuchet MS", system-ui, sans-serif; color: var(--ink); }
+  #scene { position: fixed; inset: 0; width: 100vw; height: 100vh; display: block; touch-action: none; }
+  .screen { position: fixed; inset: 0; display: none; z-index: 10; }
+  .screen.on { display: flex; }
+  button { font-family: inherit; cursor: pointer; }
+  .card { background: var(--card); backdrop-filter: blur(14px) saturate(1.3); -webkit-backdrop-filter: blur(14px) saturate(1.3);
+    border: 1.5px solid rgba(255, 255, 255, 0.9); border-radius: 28px; box-shadow: 0 18px 50px rgba(20, 24, 70, 0.28), inset 0 1px 0 #fff; }
+  .btn { border: 0; border-radius: 18px; padding: 14px 22px; font-size: 20px; font-weight: 600; color: var(--ink);
+    background: linear-gradient(180deg, #ffffff, #eef0ff); box-shadow: 0 4px 0 #c9cdea, 0 8px 18px rgba(30, 30, 90, 0.15); transition: transform .08s; }
+  .btn:active { transform: translateY(3px); box-shadow: 0 1px 0 #c9cdea; }
+  .btn.gold { background: linear-gradient(180deg, #ffe37a, var(--gold) 55%, var(--gold-deep)); box-shadow: 0 5px 0 #c9801a, 0 10px 24px rgba(240, 168, 28, .45); color: #3b2a07; }
+  .btn.gold:active { box-shadow: 0 1px 0 #c9801a; }
+  .btn.violet { background: linear-gradient(180deg, #a891ff, var(--violet)); color: #fff; box-shadow: 0 5px 0 #4b33b8, 0 10px 24px rgba(91, 70, 220, .4); }
+  .btn.big { font-size: 28px; padding: 18px 34px; border-radius: 24px; }
+  .btn.small { font-size: 16px; padding: 9px 14px; border-radius: 14px; }
+  .muted { color: var(--ink-soft); }
+
+  /* ---------- title ---------- */
+  #title { align-items: center; justify-content: center; flex-direction: column; gap: 22px; padding: 20px; }
+  .logo { text-align: center; filter: drop-shadow(0 6px 0 rgba(40, 30, 110, .35)) drop-shadow(0 18px 30px rgba(20, 10, 60, .35)); }
+  .logo .l1 { font-size: clamp(54px, 10vw, 110px); font-weight: 700; line-height: .9; letter-spacing: 1px;
+    background: linear-gradient(180deg, #fff6c8 0%, #ffd23f 40%, #ff9a3c 75%, #ff6fb5 100%); -webkit-background-clip: text; background-clip: text; color: transparent;
+    -webkit-text-stroke: 2px rgba(80, 40, 120, .35); }
+  .logo .l2 { font-size: clamp(30px, 5.2vw, 56px); font-weight: 700; color: #fff; letter-spacing: 6px; margin-top: 4px; }
+  .logo .tag { font-size: 20px; color: #fff; font-weight: 500; margin-top: 8px; text-shadow: 0 2px 8px rgba(20, 20, 70, .6); }
+  #title .card { padding: 22px; width: min(460px, 94vw); display: flex; flex-direction: column; gap: 12px; }
+  #profiles { display: flex; flex-wrap: wrap; gap: 8px; }
+  #profiles button { border: 2px solid var(--line); background: #fff; border-radius: 16px; padding: 10px 14px; font-size: 18px; font-weight: 600; color: var(--ink); }
+  #profiles button small { display: block; font-size: 12px; font-weight: 500; color: var(--ink-soft); }
+  .field { width: 100%; font: 500 22px "Fredoka", sans-serif; padding: 13px 16px; border-radius: 16px; border: 2.5px solid #d8dcf3; outline: none; color: var(--ink); background: #fff; }
+  .field:focus { border-color: var(--violet); box-shadow: 0 0 0 4px rgba(123, 92, 255, .18); }
+
+  /* ---------- menu ---------- */
+  #menu { align-items: center; justify-content: flex-start; padding: 24px; }
+  #menu .card { width: min(440px, 92vw); padding: 18px 18px 20px; display: flex; flex-direction: column; gap: 10px; }
+  .stage { position: relative; width: 100%; height: 300px; border-radius: 22px; overflow: hidden;
+    background: radial-gradient(ellipse at 50% 30%, #ffffff 0%, #e9e5ff 55%, #cfc6ff 100%); }
+  .stage canvas { width: 100% !important; height: 100% !important; display: block; touch-action: none; }
+  .stage .hint { position: absolute; bottom: 8px; width: 100%; text-align: center; font-size: 13px; color: var(--ink-soft); pointer-events: none; }
+  .who { display: flex; align-items: baseline; justify-content: space-between; }
+  .who h2 { margin: 0; font-size: 30px; }
+  .chip { display: inline-block; padding: 4px 12px; border-radius: 999px; font-weight: 600; font-size: 15px; background: #efeaff; color: var(--violet); }
+  .row { display: flex; gap: 10px; flex-wrap: wrap; }
+  .row .btn { flex: 1; }
+
+  /* ---------- in-game HUD ---------- */
+  #hud { position: fixed; top: 0; left: 0; right: 0; z-index: 20; display: none; padding: 12px 14px; gap: 10px; align-items: center; pointer-events: none; }
+  #hud.on { display: flex; }
+  #hud > * { pointer-events: auto; }
+  .hud-chip { background: var(--card); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); border-radius: 18px; padding: 8px 14px; font-weight: 600; font-size: 17px; box-shadow: 0 6px 18px rgba(20, 24, 70, .2); white-space: nowrap; }
+  .progress { flex: 1; position: relative; height: 46px; background: var(--card); border-radius: 18px; box-shadow: 0 6px 18px rgba(20, 24, 70, .2); padding: 0 46px 0 16px; display: flex; align-items: center; }
+  .progress .rail { position: relative; flex: 1; height: 8px; border-radius: 99px; background: repeating-linear-gradient(90deg, #8a7a6a 0 6px, #c8bca8 6px 12px); }
+  .progress .fill { position: absolute; left: 0; top: 0; bottom: 0; border-radius: 99px; background: linear-gradient(90deg, var(--mint), #7fe0ff); width: 0; transition: width .6s; }
+  .progress .dot { position: absolute; top: 50%; width: 14px; height: 14px; margin: -7px 0 0 -7px; border-radius: 50%; background: #fff; border: 2.5px solid #c9a24a; transition: all .3s; }
+  .progress .dot.done { background: var(--mint); border-color: #1f9f6a; }
+  .progress .tr { position: absolute; top: 50%; font-size: 24px; margin: -16px 0 0 -14px; transition: left .5s; }
+  .progress .castle { position: absolute; right: 8px; font-size: 28px; }
+  .hud-btn { width: 46px; height: 46px; border-radius: 16px; border: 0; background: var(--card); font-size: 22px; box-shadow: 0 6px 18px rgba(20, 24, 70, .2); }
+
+  /* ---------- start + question ---------- */
+  #go { align-items: flex-end; justify-content: center; padding-bottom: 9vh; pointer-events: none; }
+  #go .card { pointer-events: auto; padding: 22px 30px; text-align: center; }
+  #go h3 { margin: 0 0 4px; font-size: 26px; }
+  #go p { margin: 0 0 16px; font-size: 18px; }
+  #q { align-items: flex-start; justify-content: center; padding-top: 74px; pointer-events: none; }
+  #q .card { pointer-events: auto; width: min(560px, 94vw); padding: 20px 22px; text-align: center; animation: pop .35s cubic-bezier(.2, 1.4, .4, 1); }
+  @keyframes pop { from { transform: scale(.85) translateY(-20px); opacity: 0; } to { transform: none; opacity: 1; } }
+  .qhead { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+  .qmode { font-weight: 700; font-size: 15px; letter-spacing: 1.5px; text-transform: uppercase; color: var(--violet); }
+  .tier { font-size: 13px; font-weight: 600; padding: 3px 10px; border-radius: 99px; }
+  .tier.one { background: #fff3c4; color: #9a6a00; } .tier.two { background: #e0f2ff; color: #1f6aa8; } .tier.three { background: #f6e3ff; color: #7a2fa8; }
+  .word { font-size: clamp(36px, 7vw, 54px); font-weight: 700; letter-spacing: 3px; margin: 6px 0 10px; min-height: 66px; word-break: break-word; }
+  .word.gaps { letter-spacing: 7px; }
+  .word.hidden { color: #c8c4e6; }
+  .timer { height: 8px; border-radius: 99px; background: #e9e6fb; overflow: hidden; margin: 0 auto 12px; max-width: 320px; }
+  .timer > i { display: block; height: 100%; width: 100%; background: linear-gradient(90deg, var(--gold), var(--pink)); transform-origin: left; }
+  .answer { display: flex; gap: 10px; }
+  .answer .field { text-align: center; font-size: 26px; letter-spacing: 1px; }
+  .def { background: #f1f5ff; border: 2px dashed #b8c8f0; border-radius: 16px; padding: 9px 14px; margin: 2px 0 12px; font-size: 16px; color: #3a4a7a; text-align: left; }
+  .listen { display: flex; flex-direction: column; align-items: center; gap: 6px; margin: 6px 0 12px; }
+  .listen .btn { font-size: 22px; }
+  .linkbtn { border: 0; background: none; color: var(--violet); font-weight: 600; font-size: 16px; text-decoration: underline; }
+  .choices { display: flex; flex-direction: column; gap: 10px; margin: 6px 0 4px; }
+  .choices button { font: 700 30px "Fredoka", sans-serif; letter-spacing: 2px; padding: 12px; border-radius: 18px; border: 3px solid #dfe2f6; background: #fff; color: var(--ink); }
+  .choices button.bad { border-color: #ff8a8a; background: #fff0f0; text-decoration: line-through; color: #b04040; }
+  .fb { min-height: 24px; margin-top: 8px; font-size: 17px; font-weight: 600; }
+  .fb.bad { color: #c0453a; } .fb.good { color: #1f9f6a; }
+  .bigword { font-size: clamp(44px, 9vw, 72px); font-weight: 700; color: #1f9f6a; letter-spacing: 3px; padding: 18px; margin: 4px 0;
+    background: linear-gradient(180deg, #eafff4, #d3f8e6); border: 3px solid #5fe3a2; border-radius: 22px; animation: pop .4s cubic-bezier(.2, 1.5, .4, 1); word-break: break-word; }
+  .fix { font-size: 17px; font-weight: 600; color: #c0453a; margin-bottom: 4px; }
+  .fixword { font-size: clamp(36px, 7vw, 54px); font-weight: 700; letter-spacing: 3px; color: var(--ink); background: #fff7e0; border: 3px solid var(--gold); border-radius: 20px; padding: 10px; margin: 4px 0 12px; }
+
+  /* ---------- celebration + reward ---------- */
+  #banner { align-items: flex-start; justify-content: center; padding-top: 10vh; pointer-events: none; z-index: 25; }
+  .bn { text-align: center; animation: drop 1s cubic-bezier(.2, 1.4, .4, 1); }
+  .bn .t1 { font-size: clamp(44px, 9vw, 92px); font-weight: 700; line-height: 1;
+    background: linear-gradient(180deg, #fffbe0, #ffd23f 45%, #ff9a3c); -webkit-background-clip: text; background-clip: text; color: transparent;
+    filter: drop-shadow(0 4px 0 #8a4a10) drop-shadow(0 12px 24px rgba(0, 0, 0, .45)); }
+  .bn .t2 { font-size: clamp(20px, 3.4vw, 30px); color: #fff; font-weight: 600; margin-top: 10px; text-shadow: 0 2px 10px rgba(0, 0, 0, .6); }
+  .bn .t3 { font-size: 16px; color: #fff; opacity: .85; margin-top: 6px; text-shadow: 0 2px 8px rgba(0, 0, 0, .6); }
+  @keyframes drop { from { transform: translateY(-60px) scale(.7); opacity: 0; } to { transform: none; opacity: 1; } }
+  #rewardBtn { position: fixed; bottom: 8vh; left: 50%; transform: translateX(-50%); z-index: 26; display: none; }
+  #reward { align-items: center; justify-content: center; background: rgba(20, 14, 50, .45); z-index: 30; padding: 14px; }
+  #reward .card { width: min(820px, 96vw); padding: 22px; text-align: center; max-height: 94vh; overflow: auto; }
+  #reward h2 { margin: 0 0 4px; font-size: 32px; }
+  .offers { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin: 16px 0 8px; }
+  .offer { border: 3px solid #e4e2f6; background: #fff; border-radius: 24px; padding: 12px; transition: transform .15s, border-color .15s; }
+  .offer:hover { transform: translateY(-4px); border-color: var(--gold); }
+  .offer img { width: 100%; aspect-ratio: 1; object-fit: contain; background: radial-gradient(circle, #fff 0%, #f1edff 70%); border-radius: 18px; }
+  .offer b { display: block; font-size: 19px; margin: 6px 0 2px; }
+  .offer span { font-size: 14px; color: var(--ink-soft); }
+  @media (max-width: 560px) { .offers { grid-template-columns: 1fr; } .offer img { width: 120px; } }
+
+  /* ---------- avatar editor ---------- */
+  #editor { z-index: 30; background: linear-gradient(160deg, rgba(240, 236, 255, .97), rgba(220, 238, 255, .97)); padding: 18px; gap: 18px; }
+  #editor .left { flex: 0 0 min(42%, 440px); display: flex; flex-direction: column; gap: 10px; }
+  #editor .left .stage { flex: 1; height: auto; min-height: 260px; }
+  #editor .right { flex: 1; display: flex; flex-direction: column; min-width: 0; }
+  .tabs { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 10px; }
+  .tabs button { border: 0; padding: 10px 14px; border-radius: 14px; font-size: 17px; font-weight: 600; background: #fff; color: var(--ink-soft); box-shadow: 0 2px 0 #d9dcf2; }
+  .tabs button.on { background: var(--violet); color: #fff; box-shadow: 0 2px 0 #4b33b8; }
+  .panel { flex: 1; overflow: auto; background: #fff; border-radius: 22px; padding: 14px 16px; box-shadow: inset 0 0 0 1.5px var(--line); }
+  .panel h4 { margin: 12px 0 8px; font-size: 17px; color: var(--ink-soft); }
+  .panel h4:first-child { margin-top: 0; }
+  .swatches { display: flex; flex-wrap: wrap; gap: 9px; }
+  .sw { width: 44px; height: 44px; border-radius: 50%; border: 3px solid #fff; box-shadow: 0 0 0 2px #d9dcf2; }
+  .sw.on { box-shadow: 0 0 0 3px var(--violet); transform: scale(1.08); }
+  .opts { display: flex; flex-wrap: wrap; gap: 8px; }
+  .opt { border: 2.5px solid #e2e4f5; background: #fafaff; border-radius: 14px; padding: 9px 13px; font-size: 16px; font-weight: 600; color: var(--ink); }
+  .opt.on { border-color: var(--violet); background: #efeaff; color: var(--violet); }
+  .items { display: grid; grid-template-columns: repeat(auto-fill, minmax(104px, 1fr)); gap: 10px; }
+  .it { border: 2.5px solid #e6e4f6; background: #fff; border-radius: 18px; padding: 6px; text-align: center; font-size: 13px; font-weight: 600; color: var(--ink); }
+  .it img { width: 100%; aspect-ratio: 1; object-fit: contain; }
+  .it.on { border-color: var(--mint); background: #effcf6; }
+  .it.locked { opacity: .45; filter: grayscale(.8); }
+  .empty { color: var(--ink-soft); font-size: 15px; padding: 8px 0; }
+
+  /* ---------- settings ---------- */
+  #settings { align-items: center; justify-content: center; background: rgba(20, 14, 50, .45); z-index: 30; padding: 14px; }
+  #settings .card { width: min(560px, 96vw); padding: 22px; max-height: 94vh; overflow: auto; }
+  #settings h2 { margin: 0 0 12px; }
+  .seg { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+  .seg button { border: 2.5px solid #e2e4f5; background: #fafaff; border-radius: 16px; padding: 12px 6px; font-size: 17px; font-weight: 600; color: var(--ink); }
+  .seg button.on { border-color: var(--violet); background: #efeaff; color: var(--violet); }
+  .mix { margin-top: 12px; display: none; }
+  .mix.on { display: block; }
+  .slider { display: grid; grid-template-columns: 110px 1fr 56px; align-items: center; gap: 10px; margin: 8px 0; font-weight: 600; }
+  .slider input { width: 100%; accent-color: var(--violet); height: 28px; }
+  .toggle { display: flex; align-items: center; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid var(--line); font-size: 18px; }
+  .toggle input { width: 26px; height: 26px; accent-color: var(--violet); }
+  .wordcount { font-size: 14px; color: var(--ink-soft); margin-top: 4px; }
+
+  @media (max-width: 760px) {
+    #editor { flex-direction: column; padding: 10px; }
+    #editor .left { flex: 0 0 auto; }
+    #editor .left .stage { height: 240px; flex: none; }
+  }
+</style>
+</head>
+<body>
+<canvas id="scene"></canvas>
+
+<!-- ============================== TITLE ============================== -->
+<div class="screen on" id="title">
+  <div class="logo">
+    <div class="l1">Spellbound</div>
+    <div class="l2">✦ EXPRESS ✦</div>
+    <div class="tag">Spell your way to the magical castle</div>
+  </div>
+  <div class="card">
+    <div id="profiles"></div>
+    <input class="field" id="nameIn" placeholder="Type your name" maxlength="20" autocomplete="off">
+    <button class="btn gold big" id="playBtn">Let's go! 🚂</button>
+  </div>
+</div>
+
+<!-- ============================== MENU =============================== -->
+<div class="screen" id="menu">
+  <div class="card">
+    <div class="stage" id="menuStage"><div class="hint">Drag to spin</div></div>
+    <div class="who"><h2 id="menuName">Isla</h2><span class="chip" id="menuLevel">Level 1</span></div>
+    <div class="muted" id="menuInfo"></div>
+    <button class="btn gold big" id="startBtn">🚂 Start Level 1</button>
+    <div class="row">
+      <button class="btn" id="avatarBtn">🎨 Avatar</button>
+      <button class="btn" id="settingsBtn">⚙️ Settings</button>
+    </div>
+    <button class="linkbtn" id="switchBtn">Switch player</button>
+  </div>
+</div>
+
+<!-- ============================== HUD ================================ -->
+<div id="hud">
+  <div class="hud-chip" id="hudLevel">Level 1</div>
+  <div class="progress"><div class="rail"><div class="fill" id="pFill"></div><div id="pDots"></div><div class="tr" id="pTrain">🚂</div></div><div class="castle">🏰</div></div>
+  <div class="hud-chip" id="hudCount">0 / 10</div>
+  <button class="hud-btn" id="soundBtn" title="Sound">🔊</button>
+  <button class="hud-btn" id="homeBtn" title="Menu">🏠</button>
+</div>
+
+<div class="screen" id="go">
+  <div class="card">
+    <h3 id="goTitle">Level 1 · Blossom Meadow</h3>
+    <p class="muted" id="goSub">Spell 10 words to reach the castle!</p>
+    <button class="btn gold big" id="aboardBtn">All aboard! 🚂</button>
+  </div>
+</div>
+
+<div class="screen" id="q"><div class="card" id="qCard"></div></div>
+
+<div class="screen" id="banner"><div class="bn" id="bn"></div></div>
+<button class="btn gold big" id="rewardBtn">Choose your reward ✨</button>
+
+<!-- ============================== REWARD ============================= -->
+<div class="screen" id="reward">
+  <div class="card">
+    <h2>Pick a treasure! 🎁</h2>
+    <div class="muted" id="rewardSub">Choose one to keep. It goes straight onto your avatar.</div>
+    <div class="offers" id="offers"></div>
+  </div>
+</div>
+
+<!-- ============================== AVATAR EDITOR ====================== -->
+<div class="screen" id="editor">
+  <div class="left">
+    <div class="stage" id="editStage"><div class="hint">Drag to spin</div></div>
+    <button class="btn gold" id="editDone">Done ✓</button>
+  </div>
+  <div class="right">
+    <div class="tabs" id="tabs"></div>
+    <div class="panel" id="panel"></div>
+  </div>
+</div>
+
+<!-- ============================== SETTINGS =========================== -->
+<div class="screen" id="settings">
+  <div class="card">
+    <h2>⚙️ Settings</h2>
+    <h4 style="margin:6px 0 8px">Which words?</h4>
+    <div class="seg" id="tierSeg">
+      <button data-t="one">🐝 One Bee</button><button data-t="two">🐝🐝 Two Bee</button><button data-t="three">🐝🐝🐝 Three Bee</button><button data-t="mix">🎨 Mix</button>
+    </div>
+    <div class="wordcount" id="tierNote"></div>
+    <div class="mix" id="mixBox">
+      <div class="slider"><span>🐝 One Bee</span><input type="range" min="0" max="100" data-k="one"><b data-v="one"></b></div>
+      <div class="slider"><span>🐝🐝 Two Bee</span><input type="range" min="0" max="100" data-k="two"><b data-v="two"></b></div>
+      <div class="slider"><span>🐝🐝🐝 Three</span><input type="range" min="0" max="100" data-k="three"><b data-v="three"></b></div>
+    </div>
+    <h4 style="margin:18px 0 4px">Kinds of questions</h4>
+    <label class="toggle">✨ Flash (look, then spell) <input type="checkbox" data-type="flash"></label>
+    <label class="toggle">🔊 Listen and spell <input type="checkbox" data-type="listen"></label>
+    <label class="toggle">🧩 Fill in the blanks (with meaning) <input type="checkbox" data-type="gaps"></label>
+    <label class="toggle">✅ Pick the right spelling <input type="checkbox" data-type="choose"></label>
+    <h4 style="margin:18px 0 4px">Flash time</h4>
+    <div class="slider"><span>Seconds</span><input type="range" min="2" max="8" step="0.5" id="flashIn"><b id="flashV"></b></div>
+    <label class="toggle">🔊 Sound <input type="checkbox" id="soundIn"></label>
+    <div style="margin-top:16px"><button class="btn gold" id="setDone" style="width:100%">Save</button></div>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="js/color.js?v=1"></script>
+<script src="js/words.js?v=1"></script>
+<script src="js/speak.js?v=1"></script>
+<script src="js/audio.js?v=1"></script>
+<script src="js/avatar.js?v=1"></script>
+<script src="js/world.js?v=1"></script>
+<script src="js/effects.js?v=1"></script>
+<script src="js/game.js?v=1"></script>
+</body>
+</html>
