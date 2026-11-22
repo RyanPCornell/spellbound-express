@@ -28,7 +28,7 @@ A 3D spelling game: spell your way along a railway to a magical castle.
   yet come up first. Typing ignores capitals, spaces and accents, and the list's
   alternate spellings count.
 - **Avatar.** A rounded 3D character built from primitives (`js/avatar.js`).
-  The player chooses skin, eyes, smile, glasses, 9 hair styles, hair colour,
+  The player chooses skin, eyes, smile, glasses (5 styles, 14 frame colours with greens first, clear or tinted lenses), 9 hair styles, hair colour,
   top, bottoms and shoes. 53 treasures (hats, eyewear, items held in the hand,
   backs, badges, pets, shoes; clothes, fun, science, math, magic) attach to the
   avatar.
