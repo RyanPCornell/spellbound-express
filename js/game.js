@@ -17,6 +17,7 @@
   function esc(s) { return String(s).replace(/[&<>"]/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]; }); }
   function show(id, on) { $(id).classList.toggle("on", on !== false); }
   function wordsNeeded(level) { return Math.min(30, 8 + 2 * level); }
+  var MAX_MISTAKES = 3;      // the third mistake sends the train back to the station
 
   function newProfile(name) {
     return { name: name, look: Object.assign({}, AVATAR.DEFAULT), equipped: {}, owned: [], level: 1, stats: {}, history: [], wins: 0,
@@ -90,7 +91,7 @@
     var bank = REAL_WORDS, out = [];
     for (var tries = 0; out.length < n && tries < 300; tries++) {
       var m = misspellOnce(w, tries >= 200);              // realistic slips first
-      if (m && m !== w && out.indexOf(m) === -1 && !bank[m]) out.push(m);
+      if (m && m !== w && out.indexOf(m) === -1 && !bank[m] && !/([a-z])\1\1/.test(m)) out.push(m);   // no "tenuuus"
     }
     // last resort for very short words: a stray final e, or a doubled last letter
     [w + "e", w + w[w.length - 1]].forEach(function (m) { if (out.length < n && out.indexOf(m) === -1 && !bank[m]) out.push(m); });
@@ -168,6 +169,7 @@
   };
   $("nameIn").addEventListener("keydown", function (e) { if (e.key === "Enter") $("playBtn").click(); });
   function enter(p) {
+    p.look = Object.assign({}, AVATAR.DEFAULT, p.look);     // fills in fields added later (e.g. glasses colour)
     P = p; DB.last = slug(p.name); save();
     AUDIO.set(P.settings.sound !== false); $("soundBtn").textContent = AUDIO.on ? "🔊" : "🔈";
     show("title", false);
@@ -209,7 +211,7 @@
   function startLevel() {
     show("menu", false);
     var need = wordsNeeded(P.level);
-    ride = { need: need, done: 0, stop: 0, used: {}, retry: [] };
+    ride = { need: need, done: 0, stop: 0, used: {}, retry: [], missed: [], mistakes: 0, tries: 1 };
     $("hudLevel").textContent = "Level " + P.level;
     var dots = "";
     for (var i = 0; i < need; i++) dots += '<span class="dot" style="left:' + ((i + 1) / (need + 1.15) * 100) + '%"></span>';
@@ -227,6 +229,10 @@
     $("pFill").style.width = (f * 100) + "%";
     $("pTrain").style.left = (ride.done / (ride.need + 1.15) * 100) + "%";
     $("hudCount").textContent = ride.done + " / " + ride.need;
+    // three train tickets: each mistake punches one
+    var tix = "";
+    for (var k = 0; k < MAX_MISTAKES; k++) tix += '<span class="tix' + (k < ride.mistakes ? " used" : "") + '">🎟️</span>';
+    $("hudTix").innerHTML = tix;
     [].forEach.call($("pDots").children, function (d, i) { d.classList.toggle("done", i < ride.done); });
   }
   $("aboardBtn").onclick = function () {
@@ -237,6 +243,7 @@
   };
   WORLD.on("arrive", function (info) {
     if (!ride) return;
+    if (info.stop === "station") { retryAtStation(); return; }
     if (info.stop >= 0) {
       AUDIO.brake();
       WORLD.setCamera("stop");
@@ -336,19 +343,57 @@
     } else {
       stat(w).m++; save();
       AUDIO.wrong();
+      ride.mistakes++; updateHud();
+      if (ride.missed.indexOf(w) === -1) ride.missed.push(w);
+      var outOfTickets = ride.mistakes >= MAX_MISTAKES;
       ride.retry.push({ w: w, after: ride.done + 2 });     // it comes back a couple of stops later
       var fb = $("fb"); fb.className = "fb bad"; fb.textContent = Q.mode === "choose" ? "Oops, “" + answer + "” is misspelled." : "Not quite! You wrote “" + answer + "”.";
       setTimeout(function () {
         card.innerHTML = '<div class="fix">Here’s how it’s spelled. Type it once, just like this:</div><div class="fixword">' + esc(w) + '</div>' +
           '<div class="answer"><input class="field" id="ans" autocomplete="off" autocapitalize="off" spellcheck="false" autocorrect="off" placeholder="copy it"><button class="btn gold" id="ansGo">Got it</button></div><div class="fb" id="fb"></div>';
         var go = function () {
-          if (spellMatch($("ans").value, w)) { AUDIO.click(); $("fb").className = "fb good"; $("fb").textContent = "👍 Great. Here's a new word…"; setTimeout(function () { ask(); }, 900); }
+          if (spellMatch($("ans").value, w)) {
+            AUDIO.click(); $("fb").className = "fb good";
+            if (outOfTickets) { $("fb").textContent = "👍 Great copying!"; setTimeout(backToStation, 900); }
+            else { $("fb").textContent = "👍 Great. Here's a new word…"; setTimeout(function () { ask(); }, 900); }
+          }
           else { $("fb").className = "fb bad"; $("fb").textContent = "Copy it letter by letter."; $("ans").value = ""; $("ans").focus(); }
         };
         $("ansGo").onclick = go; $("ans").addEventListener("keydown", function (e) { if (e.key === "Enter") go(); });
         setTimeout(function () { $("ans").focus(); }, 80);
       }, 1500);
     }
+  }
+
+  // ====================================================== BACK TO THE STATION
+  // Three mistakes on a level: a cheerful "try again", the train rolls back
+  // to the start, and the level begins again (missed words come back first).
+  var CHEERS = ["You can do it!", "Every great speller practises!", "You've got this!", "Third time's the charm!", "Mistakes help us learn!"];
+  function backToStation() {
+    $("qCard").innerHTML = '<div style="font-size:54px;line-height:1">🚂💨</div>' +
+      '<div class="word" style="font-size:34px;letter-spacing:0;min-height:0;margin:8px 0 4px">Uh oh! All out of tickets.</div>' +
+      '<div class="muted" style="font-size:19px;margin-bottom:14px">Back to the station to try Level ' + P.level + ' again. ' + CHEERS[(ride.tries - 1) % CHEERS.length] + ' 💪</div>' +
+      '<button class="btn gold big" id="backBtn">Back to the station 🎟️</button>';
+    WORLD.setAvatarMode("wave");
+    $("backBtn").onclick = function () {
+      AUDIO.click();
+      show("q", false);
+      WORLD.setCamera("chase");
+      AUDIO.whistle();
+      WORLD.setAvatarMode("idle");
+      setTimeout(function () { WORLD.goBack(); }, 500);
+    };
+  }
+  function retryAtStation() {
+    var missed = ride.missed.slice();
+    WORLD.resetStops();
+    ride = { need: ride.need, done: 0, stop: 0, used: {}, missed: [], mistakes: 0, tries: ride.tries + 1,
+      retry: missed.map(function (w, i) { return { w: w, after: i }; }) };      // the words that tripped you up come first
+    updateHud();
+    $("goTitle").textContent = "Level " + P.level + " · let's try again!";
+    $("goSub").textContent = "Spell " + ride.need + " words to reach the castle. " + CHEERS[(ride.tries - 1) % CHEERS.length];
+    show("go");
+    WORLD.setAvatarMode("wave");
   }
 
   // ====================================================== CASTLE
@@ -424,7 +469,8 @@
   }
   function renderPanel(highlight) {
     var A = AVATAR, h = "";
-    if (tab === "look") h = "<h4>Skin</h4>" + swatches("skin", A.SKIN) + "<h4>Eyes</h4>" + swatches("eyes", A.EYES) + "<h4>Smile</h4>" + options("mouth", A.MOUTHS) + "<h4>Glasses</h4>" + options("glasses", A.GLASSES);
+    if (tab === "look") h = "<h4>Skin</h4>" + swatches("skin", A.SKIN) + "<h4>Eyes</h4>" + swatches("eyes", A.EYES) + "<h4>Smile</h4>" + options("mouth", A.MOUTHS) + "<h4>Glasses</h4>" + options("glasses", A.GLASSES) +
+      (P.look.glasses && P.look.glasses !== "none" ? "<h4>Glasses colour</h4>" + swatches("glassesColor", A.GLASS_COLORS) + "<h4>Lenses</h4>" + options("lenses", A.LENSES) : "");
     else if (tab === "hair") h = "<h4>Hair style</h4>" + options("hair", A.HAIR_STYLES) + "<h4>Hair colour</h4>" + swatches("hairColor", A.HAIR);
     else if (tab === "clothes") h = "<h4>Top</h4>" + options("top", A.TOPS) + "<h4>Top colour</h4>" + swatches("topColor", A.CLOTH) +
       "<h4>Bottoms</h4>" + options("bottom", A.BOTTOMS) + "<h4>Bottoms colour</h4>" + swatches("bottomColor", A.CLOTH) + "<h4>Shoes</h4>" + swatches("shoes", A.CLOTH);

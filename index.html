@@ -71,6 +71,9 @@
   .progress .dot.done { background: var(--mint); border-color: #1f9f6a; }
   .progress .tr { position: absolute; top: 50%; font-size: 24px; margin: -16px 0 0 -14px; transition: left .5s; }
   .progress .castle { position: absolute; right: 8px; font-size: 28px; }
+  .tickets { padding: 6px 10px; font-size: 20px; letter-spacing: 2px; }
+  .tix { display: inline-block; transition: all .4s; }
+  .tix.used { opacity: .22; filter: grayscale(1); transform: rotate(-20deg) scale(.85); }
   .hud-btn { width: 46px; height: 46px; border-radius: 16px; border: 0; background: var(--card); font-size: 22px; box-shadow: 0 6px 18px rgba(20, 24, 70, .2); }
 
   /* ---------- start + question ---------- */
@@ -166,6 +169,13 @@
   .toggle input { width: 26px; height: 26px; accent-color: var(--violet); }
   .wordcount { font-size: 14px; color: var(--ink-soft); margin-top: 4px; }
 
+  /* narrower screens (portrait iPad): the progress rail gets its own row */
+  @media (max-width: 980px) {
+    #hud { flex-wrap: wrap; }
+    .progress { order: 10; flex-basis: 100%; }
+    #hud .hud-chip#hudCount { margin-left: auto; }
+    #q { padding-top: 130px; }
+  }
   @media (max-width: 760px) {
     #editor { flex-direction: column; padding: 10px; }
     #editor .left { flex: 0 0 auto; }
@@ -210,6 +220,7 @@
   <div class="hud-chip" id="hudLevel">Level 1</div>
   <div class="progress"><div class="rail"><div class="fill" id="pFill"></div><div id="pDots"></div><div class="tr" id="pTrain">🚂</div></div><div class="castle">🏰</div></div>
   <div class="hud-chip" id="hudCount">0 / 10</div>
+  <div class="hud-chip tickets" id="hudTix" title="Tickets: three mistakes and the train goes back to the station"></div>
   <button class="hud-btn" id="soundBtn" title="Sound">🔊</button>
   <button class="hud-btn" id="homeBtn" title="Menu">🏠</button>
 </div>
@@ -218,6 +229,7 @@
   <div class="card">
     <h3 id="goTitle">Level 1 · Blossom Meadow</h3>
     <p class="muted" id="goSub">Spell 10 words to reach the castle!</p>
+    <p class="muted" style="font-size:15px;margin-top:-8px">🎟️🎟️🎟️ You have 3 tickets. Three mistakes and the train goes back to the station.</p>
     <button class="btn gold big" id="aboardBtn">All aboard! 🚂</button>
   </div>
 </div>
@@ -275,13 +287,13 @@
 </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-<script src="js/color.js?v=1"></script>
-<script src="js/words.js?v=1"></script>
-<script src="js/speak.js?v=1"></script>
-<script src="js/audio.js?v=1"></script>
-<script src="js/avatar.js?v=1"></script>
-<script src="js/world.js?v=1"></script>
-<script src="js/effects.js?v=1"></script>
-<script src="js/game.js?v=1"></script>
+<script src="js/color.js?v=4"></script>
+<script src="js/words.js?v=4"></script>
+<script src="js/speak.js?v=4"></script>
+<script src="js/audio.js?v=4"></script>
+<script src="js/avatar.js?v=4"></script>
+<script src="js/world.js?v=4"></script>
+<script src="js/effects.js?v=4"></script>
+<script src="js/game.js?v=4"></script>
 </body>
 </html>

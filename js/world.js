@@ -242,7 +242,7 @@ window.WORLD = (function () {
     buildParticles();
     placeStops(nStops);
     if (!train) buildTrain();
-    train.s = 14; train.v = 0; train.target = 14; train.moving = false;
+    train.s = 14; train.v = 0; train.target = 14; train.moving = false; train.dir = 1;
     placeTrain(0);
     return { L: level.L, theme: theme };
   }
@@ -932,7 +932,7 @@ window.WORLD = (function () {
       tmp.copy(b.p); tmp.y += 0.3; c.o.lookAt(tmp);
     });
     // wheels and rods
-    train.dist += train.v * dt;
+    train.dist += train.v * (train.dir || 1) * dt;
     train.wheels.forEach(function (w) { w.o.rotation.x = train.dist / w.r; });
     var ang = train.dist / 0.6;
     train.rods.forEach(function (r, i) { r.position.y = 0.72 + Math.sin(ang + i * Math.PI / 2) * 0.26; r.position.z = 0.3 + Math.cos(ang + i * Math.PI / 2) * 0.26; });
@@ -940,12 +940,13 @@ window.WORLD = (function () {
   }
   function stepTrain(dt) {
     if (!level) return;
-    var dist = train.target - train.s, maxV = 15, acc = 5.5, dec = 6.5;
+    // the train can also roll backwards (back to the station after 3 mistakes)
+    var dist = Math.abs(train.target - train.s), maxV = train.dir < 0 ? 20 : 15, acc = 5.5, dec = 6.5;
     if (train.moving) {
       var vStop = Math.sqrt(Math.max(0, 2 * dec * dist));
       var want = Math.min(maxV, vStop);
       train.v = want > train.v ? Math.min(want, train.v + acc * dt) : want;
-      train.s += train.v * dt;
+      train.s += train.v * train.dir * dt;
       if (dist < 0.05 || train.v < 0.02 && dist < 0.6) {
         train.s = train.target; train.v = 0; train.moving = false;
         emit("arrive", train.targetInfo);
@@ -958,8 +959,20 @@ window.WORLD = (function () {
   // public: send the train to the next stop (index) or to the castle (-1)
   function goTo(stopIndex) {
     var d = stopIndex >= 0 ? level.stops[stopIndex].d : level.L - 2;
-    train.target = d; train.moving = true; train.targetInfo = { stop: stopIndex };
+    train.target = d; train.moving = true; train.dir = 1; train.targetInfo = { stop: stopIndex };
     if (stopIndex >= 0) setStopState(stopIndex, "active");
+  }
+  // roll back to the starting station
+  function goBack() {
+    train.target = 14; train.moving = true; train.dir = -1; train.targetInfo = { stop: "station" };
+  }
+  // every word gate back to its waiting colours
+  function resetStops() {
+    (level ? level.stops : []).forEach(function (s) {
+      s.state = "ahead";
+      s.hex.material.color.set("#ffcf33"); s.hex.material.emissive.set("#ffb000"); s.hex.material.emissiveIntensity = 0.15;
+      s.glow.material.color.set("#ffe37a");
+    });
   }
 
   // ======================================================== CAMERA
@@ -1040,7 +1053,7 @@ window.WORLD = (function () {
   function emit(ev, data) { (listeners[ev] || []).forEach(function (f) { f(data); }); }
 
   return {
-    init: init, buildLevel: buildLevel, goTo: goTo, setStopState: setStopState, setCamera: setCamera, snapCamera: snapCamera,
+    init: init, buildLevel: buildLevel, goTo: goTo, goBack: goBack, resetStops: resetStops, setStopState: setStopState, setCamera: setCamera, snapCamera: snapCamera,
     setAvatar: setAvatar, setAvatarMode: setAvatarMode, setSky: setSky, on: on, THEMES: THEMES, dotTex: dotTex,
     addHook: function (f) { frameHooks.push(f); }, removeHook: function (f) { frameHooks = frameHooks.filter(function (g) { return g !== f; }); },
     get scene() { return scene; }, get camera() { return camera; }, get level() { return level; }, get train() { return train; },

@@ -20,10 +20,15 @@ window.AVATAR = (function () {
   var TOPS = [{ id: "tee", name: "T-shirt" }, { id: "hoodie", name: "Hoodie" }, { id: "dress", name: "Dress" },
     { id: "jacket", name: "Jacket" }, { id: "sweater", name: "Striped sweater" }];
   var BOTTOMS = [{ id: "pants", name: "Pants" }, { id: "shorts", name: "Shorts" }, { id: "skirt", name: "Skirt" }];
-  var GLASSES = [{ id: "none", name: "None" }, { id: "round", name: "Round" }, { id: "square", name: "Square" }];
+  var GLASSES = [{ id: "none", name: "None" }, { id: "round", name: "Round" }, { id: "square", name: "Square" },
+    { id: "big", name: "Big round" }, { id: "cateye", name: "Cat-eye" }];
+  // frame colours: lots of greens first, then the rest of the rainbow
+  var GLASS_COLORS = ["#2fb35a", "#7ddc5a", "#1f6e3c", "#3fd6b0", "#3a2a22", "#ef4f66", "#ff7cc3", "#ff8a3d",
+    "#ffcf33", "#35a6dd", "#2c3e7a", "#a35ce0", "#38384a", "#f6f2ea"];
+  var LENSES = [{ id: "clear", name: "Clear" }, { id: "tinted", name: "Tinted" }];
   var MOUTHS = [{ id: "smile", name: "Smile" }, { id: "grin", name: "Big grin" }, { id: "open", name: "Happy" }];
 
-  var DEFAULT = { skin: 1, hair: "ponytail", hairColor: 1, eyes: 1, top: "hoodie", topColor: 6, bottom: "pants",
+  var DEFAULT = { glassesColor: 0, lenses: "clear", skin: 1, hair: "ponytail", hairColor: 1, eyes: 1, top: "hoodie", topColor: 6, bottom: "pants",
     bottomColor: 9, shoes: 0, glasses: "none", mouth: "smile" };
 
   // ---------------------------------------------------------------- helpers
@@ -164,7 +169,7 @@ window.AVATAR = (function () {
       arc.rotation.z = Math.PI; arc.rotation.x = -0.25; head.add(arc);
     }
     buildHair(head, look.hair, hairM);
-    if (look.glasses !== "none") head.add(buildGlasses(look.glasses));
+    if (look.glasses !== "none") head.add(buildGlasses(look.glasses, GLASS_COLORS[look.glassesColor] || GLASS_COLORS[0], look.lenses === "tinted"));
     P.face = new T.Group(); head.add(P.face);
     P.top = new T.Group(); P.top.position.y = 0.36; head.add(P.top);
 
@@ -259,16 +264,23 @@ window.AVATAR = (function () {
     }
   }
 
-  function buildGlasses(kind) {
-    var g = new T.Group(), frame = std(kind === "round" ? "#3a2a22" : "#2c3e7a", { r: 0.35 });
-    var lens = std("#bfe6ff", { op: 0.25, r: 0.05 });
+  function buildGlasses(kind, color, tinted) {
+    var g = new T.Group(), frame = std(color, { r: 0.3, m: 0.1 });
+    var lens = std(tinted ? color : "#bfe6ff", { op: tinted ? 0.55 : 0.25, r: 0.05 });
+    var r = kind === "big" ? 0.13 : 0.1, tube = kind === "big" ? 0.022 : 0.018;
     [-1, 1].forEach(function (s) {
-      var ring = kind === "round" ? new T.TorusGeometry(0.1, 0.016, 10, 28) : new T.TorusGeometry(0.11, 0.016, 4, 4);
-      var o = mesh(ring, frame, 0.155 * s, 0.02, 0.43); if (kind === "square") o.rotation.z = Math.PI / 4; g.add(o);
-      g.add(mesh(new T.CircleGeometry(0.095, 24), lens, 0.155 * s, 0.02, 0.428));
-      var arm = mesh(new T.BoxGeometry(0.012, 0.012, 0.36), frame, 0.255 * s, 0.03, 0.26); g.add(arm);
+      var ring = kind === "square" ? new T.TorusGeometry(0.11, tube, 4, 4) : new T.TorusGeometry(r, tube, 10, 28);
+      var o = mesh(ring, frame, 0.155 * s, 0.02, 0.43);
+      if (kind === "square") o.rotation.z = Math.PI / 4;
+      if (kind === "cateye") { o.scale.set(1.12, 0.82, 1); o.rotation.z = -0.25 * s; }
+      g.add(o);
+      var l = mesh(new T.CircleGeometry(r * 0.95, 24), lens, 0.155 * s, 0.02, 0.428);
+      if (kind === "cateye") { l.scale.set(1.12, 0.82, 1); l.rotation.z = -0.25 * s; }
+      g.add(l);
+      if (kind === "cateye") { var wing = mesh(new T.ConeGeometry(0.035, 0.09, 8), frame, 0.27 * s, 0.09, 0.42); wing.rotation.z = -1.0 * s; g.add(wing); }
+      var arm = mesh(new T.BoxGeometry(0.014, 0.014, 0.36), frame, (kind === "big" ? 0.285 : 0.255) * s, 0.03, 0.26); g.add(arm);
     });
-    put(g, mesh(new T.CylinderGeometry(0.012, 0.012, 0.1, 6), frame, 0, 0.04, 0.44)).rotation.z = Math.PI / 2;
+    put(g, mesh(new T.CylinderGeometry(0.013, 0.013, kind === "big" ? 0.06 : 0.1, 6), frame, 0, 0.04, 0.44)).rotation.z = Math.PI / 2;
     return g;
   }
 
@@ -746,7 +758,7 @@ window.AVATAR = (function () {
     build: build, setPose: setPose, animate: animate, thumb: thumb,
     ITEMS: ITEMS, ITEM_BY_ID: ITEM_BY_ID, CATS: CATS, DEFAULT: DEFAULT,
     SKIN: SKIN, HAIR: HAIR, EYES: EYES, CLOTH: CLOTH,
-    HAIR_STYLES: HAIR_STYLES, TOPS: TOPS, BOTTOMS: BOTTOMS, GLASSES: GLASSES, MOUTHS: MOUTHS,
+    HAIR_STYLES: HAIR_STYLES, TOPS: TOPS, BOTTOMS: BOTTOMS, GLASSES: GLASSES, GLASS_COLORS: GLASS_COLORS, LENSES: LENSES, MOUTHS: MOUTHS,
     SLOTS: ["head", "face", "hand", "back", "neck", "pet", "shoes"],
     SLOT_NAMES: { head: "Hats", face: "Eyewear", hand: "In your hand", back: "On your back", neck: "Neck & badges", pet: "Pets", shoes: "Shoes" },
   };

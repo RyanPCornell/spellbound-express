@@ -17,6 +17,10 @@ A 3D spelling game: spell your way along a railway to a magical castle.
 
   A wrong answer shows the correct spelling, the player copies it once, and the
   word comes back a couple of stops later.
+- **Tickets.** Each level starts with 🎟️🎟️🎟️. Each mistake punches one. On the
+  third, after copying the word, a cheerful card ("Uh oh! All out of tickets… You
+  can do it!") sends the train rolling back to the station (`WORLD.goBack`). The
+  word gates reset, and that level starts again with the missed words first.
 - **Words.** The 2026–27 School Spelling Bee study list (450 words) is in
   `js/words.js`: words 1–150 are **One Bee**, 151–300 **Two Bee**, and 301–450
   **Three Bee**. Settings picks One, Two, Three, or a **Mix** with three
